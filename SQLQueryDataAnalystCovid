@@ -1,0 +1,116 @@
+--SELECT * FROM coviddeaths
+--ORDER BY 3,4
+
+--show data by variable choosen
+--SELECT location, date, total_cases,new_cases, total_deaths, population FROM coviddeaths
+--ORDER BY 1,2
+
+/*select by percentage total deaths v total_case*/
+--SELECT location, population, total_deaths, total_cases, (CAST(total_deaths AS float)) / (CAST(total_cases AS float)) * 100 
+--as DeathPercentage
+--FROM coviddeaths WHERE location like '%Indo%'
+--ORDER BY 1,2 
+
+--total cases v population
+--SELECT TOP 100 location, date, population, total_cases, total_cases/population * 100 AS DeathPercentage
+--FROM coviddeaths WHERE location like '%Indo%'
+--ORDER BY 1,2
+
+--mencari negara dengan tingkat infeksi tertinggi dibandingkan populasi
+--SELECT location, population, MAX(TOTAL_cases) As InfeksiTertinggi, MAX(total_cases/population) * 100 AS PersenPopulasiTertinggi FROM coviddeaths
+--GROUP BY location, population
+--ORDER BY PersenPopulasiTertinggi DESC
+
+--Showing Continental Dengan Kematian Tertinggi per populasi
+--SELECT continent, MAX(CAST(total_deaths AS Int)) as TotalDeathCount
+--FROM coviddeaths
+--WHERE CONTINENT IS NOT NULL
+--GROUP BY continent
+--ORDER BY TotalDeathCount Desc
+
+--SELECT * FROM coviddeaths WHERE continent is NULL
+--SELECT continent, MAX(CAST(total_deaths AS int)) AS totalDeathCount
+--FROM coviddeaths WHERE continent is NOT NULL
+--GROUP BY continent
+
+--Jumlah Universal
+--SELECT date, SUM(CAST(total_cases as INT)) AS TotalCase, SUM(CAST(total_deaths as INT)) AS TotalDeath,
+--SUM(CAST(total_deaths As int))/SUM(CAST(total_cases AS int)) * 100 AS DeathPercentage
+--FROM coviddeaths
+--WHERE continent IS NOT NULL
+--GROUP BY date
+--ORDER BY date
+
+--Menggabungkan 2 tabel
+--SELECT * FROM coviddeaths as Dea
+--JOIN covidvaccination as Vac ON
+--Dea.date = Vac.date
+
+--mencari berapa banyak yang sudah di vaksin
+--SELECT dea.continent, dea.location, Dea.date, Dea.population, Vac.new_vaccinations FROM coviddeaths as Dea
+--JOIN covidvaccination as Vac ON
+--Dea.location = vac.location AND Dea.date = Vac.date
+--WHERE Dea.continent is NOT NULL
+--ORDER BY 1,2,3 
+
+
+--mencari total Populasi yang sudah di vaksin berdasarkan lokasi
+--SELECT Dea.continent, Dea.location, Dea.date, Dea.population, Vac.new_vaccinations,
+--SUM(CONVERT(float, Vac.new_vaccinations))OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS RollingVaksin
+--	--(RollingVaksin/dea.population) *100
+--	FROM coviddeaths AS Dea
+--	JOIN covidvaccination as Vac 
+--	ON Dea.location = vac.location AND Dea.date = Vac.date
+--WHERE dea.continent IS NOT NULL
+--ORDER BY 2,3
+
+--Membuat CTE untuk menghimpun rollingvaksin
+--WITH PopVVac (Continent, Location, Date, Population, new_vaccinations, RollingVaksin)
+--As
+--(
+--SELECT Dea.continent, Dea.location, Dea.date, Dea.population, Vac.new_vaccinations,
+--SUM(CONVERT(float, Vac.new_vaccinations))OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS RollingVaksin
+--	--(RollingVaksin/dea.population) *100
+--	FROM coviddeaths AS Dea
+--	JOIN covidvaccination as Vac 
+--	ON Dea.location = vac.location AND Dea.date = Vac.date
+--WHERE dea.continent IS NOT NULL
+--)
+
+--SELECT *, (RollingVaksin/Population)*100 AS PersentageVaccin From PopVVac
+
+--TEMP TABLE
+--DROP TABLE if EXISTS #Persenpopulasivaksin
+--CREATE TABLE #Persenpopulasivaksin(
+--Continent nvarchar(255),
+--Location nvarchar(255),
+--Date datetime,
+--Population numeric,
+--new_vaccinations numeric,
+--RollingPeopleVaccinated numeric
+--)
+
+--INSERT INTO #Persenpopulasivaksin
+--SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
+--SUM(CONVERT(float,vac.new_vaccinations)) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated
+--FROM coviddeaths AS dea 
+--JOIN covidvaccination AS vac
+--	ON 
+--	dea.location = vac.location AND dea.date = vac.date
+
+--SELECT *, (RollingPeopleVaccinated/Population)*100 AS PersentageVaccin From #Persenpopulasivaksin
+
+/*EO Temp Table*/
+
+
+--Membuat View untuk menyimpan data untuk visualisasi
+--CREATE VIEW PercentPopulationVaccinated as
+--SELECT dea.continent, dea.location, dea.date,dea.population, vac.new_vaccinations,
+--SUM(CONVERT(bigint, vac.new_vaccinations)) OVER (Partition by dea.location ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated
+--FROM coviddeaths as dea
+--JOIN covidvaccination as vac
+--ON dea.location = vac.location AND dea.date = vac.date
+--WHERE dea.continent IS NOT NULL
+
+--SELECT * FROM PercentPopulationVaccinated
+--EO View
